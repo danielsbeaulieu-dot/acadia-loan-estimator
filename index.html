@@ -101,6 +101,17 @@
   }
   input:focus, select:focus { outline: 2px solid var(--teal); border-color: var(--teal); }
 
+  /* iOS Safari renders type=date as a native control whose internal value
+     carries a default margin that overflows the rounded box. Normalize it. */
+  input[type="date"] {
+    -webkit-appearance: none;
+    appearance: none;
+    min-width: 0;
+    max-width: 100%;
+  }
+  input[type="date"]::-webkit-date-and-time-value { text-align: left; margin: 0; padding: 0; }
+  input[type="date"]::-webkit-calendar-picker-indicator { margin: 0 0 0 auto; }
+
   .check { display: flex; align-items: center; gap: 8px; margin-top: 16px; }
   .check input { width: auto; }
   .check label { margin: 0; font-size: 14px; color: var(--text); }
