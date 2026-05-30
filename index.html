@@ -593,7 +593,7 @@ $('pdfBtn').addEventListener('click', () => {
 
   // Loan terms table
   doc.autoTable({
-    startY: y + 40,
+    startY: y + 36,
     head: [['Loan Terms', '']],
     body: [
       ['Purchase price', usd(r.purchase)],
@@ -656,7 +656,7 @@ $('pdfBtn').addEventListener('click', () => {
     45, yy + 27);
 
   // Documents
-  yy += 48;
+  yy += 44;
   doc.setTextColor(...navy); doc.setFontSize(10);
   doc.text('Documents we\'ll need', 40, yy);
   doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(60);
