@@ -155,6 +155,17 @@
   .pay .label { font-size: 12px; letter-spacing: 1px; text-transform: uppercase; font-weight: 700; }
   .pay .val { font-size: 22px; font-weight: 800; }
 
+  .liq {
+    margin-top: 10px;
+    border: 1.5px solid var(--navy);
+    border-radius: 12px;
+    padding: 13px 18px;
+  }
+  .liq-top { display: flex; justify-content: space-between; align-items: center; }
+  .liq-head { font-size: 12px; letter-spacing: 1px; text-transform: uppercase; font-weight: 700; color: var(--navy); }
+  .liq-val { font-size: 22px; font-weight: 800; color: var(--navy); }
+  .liq-note { font-size: 11.5px; color: var(--muted); margin-top: 5px; line-height: 1.4; }
+
   .btn {
     display: block;
     width: 100%;
@@ -275,6 +286,14 @@
       <span class="val" id="r_pay">—</span>
     </div>
 
+    <div class="liq">
+      <div class="liq-top">
+        <span class="liq-head">Liquidity Required</span>
+        <span class="liq-val" id="r_liq">—</span>
+      </div>
+      <div class="liq-note" id="r_liq_note"></div>
+    </div>
+
     <a class="btn btn-primary" id="applyBtn" href="#" target="_blank" rel="noopener">Apply Online →</a>
     <button class="btn btn-outline" id="pdfBtn">Download / Share PDF Quote</button>
 
@@ -323,6 +342,10 @@ const CONFIG = {
   interestDayCount:       365,    // day-count basis for the per-diem (use 360 if Acadia prefers)
   interestOnFullLoan:     false,  // false = interest on funded balance (purchase advance);
                                   // true  = interest on the full loan incl. undrawn rehab
+
+  // ---- Liquidity / cash-reserve requirement ----
+  liquidityMin:           25000,  // bare-minimum cash reserves required ($)
+  liquidityRehabPct:      50,     // % of rehab budget required in reserves (added to down payment)
 
   // ---- Links & content ----
   applyUrl: "https://portal.acadialoans.com/acadiacapital/application",
@@ -434,9 +457,17 @@ function calc() {
 
   const cashToClose = downPayment + origination + processingFee + title + insurance + prepaid;
 
+  // Liquidity requirement: down payment + a % of rehab held in cash reserves,
+  // but never less than the bare minimum.
+  const rehabReserve  = rehab * CONFIG.liquidityRehabPct/100;
+  const liquidityBase = downPayment + rehabReserve;
+  const liquidityReq  = Math.max(CONFIG.liquidityMin, liquidityBase);
+  const liquidityFloorApplies = liquidityBase < CONFIG.liquidityMin;
+
   return { purchase, rehab, arv, ltv, points, rate, totalLoan, rehabEscrow, purchaseAdvance,
            downPayment, origination, processingFee, title, insurance,
-           prepaid, prepaidDays, monthlyPay, cashToClose };
+           prepaid, prepaidDays, monthlyPay, cashToClose,
+           rehabReserve, liquidityBase, liquidityReq, liquidityFloorApplies };
 }
 
 // --- Validation: returns blocking errors + non-blocking notes ---
@@ -502,6 +533,11 @@ function render() {
   $('r_prepaid_label').textContent = `Prepaid interest (${r.prepaidDays} day${r.prepaidDays===1?'':'s'})`;
   $('r_ctc').textContent    = usd(r.cashToClose);
   $('r_pay').textContent    = usd(r.monthlyPay);
+
+  $('r_liq').textContent = usd(r.liquidityReq);
+  $('r_liq_note').textContent = r.liquidityFloorApplies
+    ? `${usd(CONFIG.liquidityMin)} minimum — exceeds down payment (${usd(r.downPayment)}) + 50% of rehab (${usd(r.rehabReserve)}).`
+    : `Down payment (${usd(r.downPayment)}) + 50% of rehab (${usd(r.rehabReserve)}). Minimum ${usd(CONFIG.liquidityMin)}.`;
 }
 
 document.querySelectorAll('input, select').forEach(el => el.addEventListener('input', render));
@@ -606,8 +642,21 @@ $('pdfBtn').addEventListener('click', () => {
   doc.text('Monthly Payment (Interest Only)', 45, yy + 18);          // matches table label inset (cellPadding 3)
   doc.text(usd(r.monthlyPay), W - 45, yy + 18, { align: 'right' });  // matches right-aligned value column
 
+  // Liquidity requirement callout — navy outline, breakdown note inside the box
+  yy += 34;
+  doc.setDrawColor(...navy); doc.setLineWidth(1.2); doc.rect(40, yy, W - 80, 34, 'S');
+  doc.setTextColor(...navy); doc.setFont('helvetica','bold'); doc.setFontSize(11);
+  doc.text('Liquidity Required', 45, yy + 15);
+  doc.text(usd(r.liquidityReq), W - 45, yy + 19, { align: 'right' });
+  doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(110);
+  doc.text(
+    r.liquidityFloorApplies
+      ? `${usd(CONFIG.liquidityMin)} minimum (exceeds down payment + 50% of rehab)`
+      : `Down payment (${usd(r.downPayment)}) + 50% of rehab (${usd(r.rehabReserve)}); min ${usd(CONFIG.liquidityMin)}`,
+    45, yy + 27);
+
   // Documents
-  yy += 44;
+  yy += 48;
   doc.setTextColor(...navy); doc.setFontSize(10);
   doc.text('Documents we\'ll need', 40, yy);
   doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(60);
