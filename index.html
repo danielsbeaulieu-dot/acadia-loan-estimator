@@ -282,7 +282,7 @@
       <span class="val" id="r_ctc">—</span>
     </div>
     <div class="pay">
-      <span class="label">Monthly Payment (Interest Only)</span>
+      <span class="label">Monthly Payment</span>
       <span class="val" id="r_pay">—</span>
     </div>
 
@@ -443,13 +443,18 @@ function calc() {
   const purchaseAdvance = totalLoan - rehabEscrow;            // funded toward purchase at closing
   const downPayment     = Math.max(purchase - purchaseAdvance, 0);
 
-  const origination = totalLoan * points/100;
+  const origination = Math.max(4000, totalLoan * points/100);
   const processingFee = $('feeOn').checked ? CONFIG.processingFee : 0;
   const title       = purchase * CONFIG.titlePctOfPurchase/100 + CONFIG.titleFlat;
-  const insurance   = purchase * CONFIG.insuranceAnnualPct/100 * (CONFIG.insuranceMonthsCollected/12);
+  const insurance   = Math.max(1000, purchase * CONFIG.insuranceAnnualPct/100 * (CONFIG.insuranceMonthsCollected/12));
 
+  const term = +$('term').value;
+  const monthlyRate = rate / 100 / 12;
+  const numPayments = term;
   const interestBasis = CONFIG.interestOnFullLoan ? totalLoan : purchaseAdvance;
-  const monthlyPay  = interestBasis * rate/100 / 12;
+  const monthlyPay = monthlyRate === 0
+    ? totalLoan / numPayments
+    : (totalLoan * monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1);
 
   const prepaidDays = daysToMonthEnd($('closing').value);
   const perDiem     = interestBasis * rate/100 / CONFIG.interestDayCount;
@@ -639,7 +644,7 @@ $('pdfBtn').addEventListener('click', () => {
   let yy = doc.lastAutoTable.finalY + 12;
   doc.setFillColor(...teal); doc.rect(40, yy, W - 80, 28, 'F');
   doc.setTextColor(...navy); doc.setFont('helvetica','bold'); doc.setFontSize(11);
-  doc.text('Monthly Payment (Interest Only)', 45, yy + 18);          // matches table label inset (cellPadding 3)
+  doc.text('Monthly Payment', 45, yy + 18);          // matches table label inset (cellPadding 3)
   doc.text(usd(r.monthlyPay), W - 45, yy + 18, { align: 'right' });  // matches right-aligned value column
 
   // Liquidity requirement callout — navy outline, breakdown note inside the box
