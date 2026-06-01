@@ -335,13 +335,12 @@ const CONFIG = {
   processingFee:          1000,   // flat processing & admin fee ($); checkbox can remove it
   titlePctOfPurchase:     1.0,    // title & settlement as % of purchase price
   titleFlat:              0,      // plus this flat $ amount
-  insuranceAnnualPct:     0.50,   // homeowners/hazard premium, % of purchase price per YEAR
+  insuranceAnnualPct:     0.50,   // homeowners/hazard premium, % of ARV per YEAR
   insuranceMonthsCollected: 12,   // months of premium collected at closing
 
   // Prepaid interest is prorated from the closing date to the end of that month.
   interestDayCount:       365,    // day-count basis for the per-diem (use 360 if Acadia prefers)
-  interestOnFullLoan:     false,  // false = interest on funded balance (purchase advance);
-                                  // true  = interest on the full loan incl. undrawn rehab
+                                  // Interest (monthly + prepaid) is calculated on the full total loan amount.
 
   // ---- Liquidity / cash-reserve requirement ----
   liquidityMin:           25000,  // bare-minimum cash reserves required ($)
@@ -446,15 +445,14 @@ function calc() {
   const origination = Math.max(4000, totalLoan * points/100);
   const processingFee = $('feeOn').checked ? CONFIG.processingFee : 0;
   const title       = purchase * CONFIG.titlePctOfPurchase/100 + CONFIG.titleFlat;
-  const insurance   = Math.max(1000, purchase * CONFIG.insuranceAnnualPct/100 * (CONFIG.insuranceMonthsCollected/12));
+  const insurance   = Math.max(1000, arv * CONFIG.insuranceAnnualPct/100 * (CONFIG.insuranceMonthsCollected/12));
 
   const term = +$('term').value;
   const monthlyRate = rate / 100 / 12;
-  const numPayments = term;
-  const interestBasis = CONFIG.interestOnFullLoan ? totalLoan : purchaseAdvance;
-  const monthlyPay = monthlyRate === 0
-    ? totalLoan / numPayments
-    : (totalLoan * monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1);
+  // These are interest-only loans: the monthly payment is interest on the
+  // FULL total loan amount. Principal is repaid at payoff/sale.
+  const interestBasis = totalLoan;
+  const monthlyPay = totalLoan * monthlyRate;
 
   const prepaidDays = daysToMonthEnd($('closing').value);
   const perDiem     = interestBasis * rate/100 / CONFIG.interestDayCount;
