@@ -253,7 +253,7 @@
 
     <label>Loan term</label>
     <select id="term"></select>
-    <div class="hint">Optional 3-month extensions available.</div>
+    <div class="hint">Optional extensions available.</div>
 
     <div class="check">
       <input id="feeOn" type="checkbox" checked />
@@ -608,7 +608,7 @@ $('pdfBtn').addEventListener('click', () => {
       ['Rehab Escrow', usd(r.rehabEscrow)],
       ['Points (origination)', r.points + ' pts'],
       ['Interest rate', r.rate + '%'],
-      ['Term', $('term').value + ' months (with optional 3-month extensions)'],
+      ['Term', $('term').value + ' months (optional extensions available)'],
     ],
     theme: 'grid',
     margin: { left: 40, right: 40 },
